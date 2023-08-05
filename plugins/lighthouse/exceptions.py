@@ -33,7 +33,7 @@ class CoverageException(LighthouseError):
         return "Error: %s\n\n%s" % (self.name, self.description)
 
     def __str__(self):
-        return self.message + " '%s'" % self.filepath
+        return f"{self.message} '{self.filepath}'"
 
 class CoverageParsingError(CoverageException):
     """
@@ -127,9 +127,9 @@ def warn_errors(errors, ignore=[]):
         #
 
         lmsg("-"*50)
-        lmsg("Files reporting %s:" % error_type.name)
+        lmsg(f"Files reporting {error_type.name}:")
         for error in error_list:
-            lmsg(" - %s" % error.filepath)
+            lmsg(f" - {error.filepath}")
 
         # suppress popups for certain errors, if the user has specified such
         if error_type in ignore:

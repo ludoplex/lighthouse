@@ -34,15 +34,12 @@ class TenetData(CoverageFile):
 
             while True:
 
-                # read 128mb chunks of 'lines' from the file
-                lines = f.readlines(1024 * 1024 * 128)
+                if lines := f.readlines(1024 * 1024 * 128):
+                    # parse the instruction addresses from lines, into the hitmap
+                    self._process_lines(lines, hitmap)
 
-                # no more lines to process, break
-                if not lines:
+                else:
                     break
-
-                # parse the instruction addresses from lines, into the hitmap
-                self._process_lines(lines, hitmap)
 
         # save the hitmap if we completed parsing without crashing
         self._hitmap = hitmap
@@ -65,7 +62,7 @@ class TenetData(CoverageFile):
                 name = name.upper()
 
                 # ignore entries that are not the instruction pointer
-                if not name in INSTRUCTION_POINTERS:
+                if name not in INSTRUCTION_POINTERS:
                     continue
 
                 # save the parsed instruction pointer address to the hitmap
@@ -75,8 +72,8 @@ class TenetData(CoverageFile):
                 # break beacuse we don't expect two IP's on the same line
                 break
 
-            # continue to the next line
-            # ...
+                # continue to the next line
+                # ...
 
         # done parsing this chunk of lines
         return

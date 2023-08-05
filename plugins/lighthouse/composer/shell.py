@@ -177,20 +177,29 @@ class ComposingShell(QtWidgets.QWidget):
 
         # set other hard to access shell theme elements
         self._line.setStyleSheet(
-            "QPlainTextEdit {"
-            "    color: %s;" % self._palette.shell_text.name() + # this line ensures the text cursor changes color, with the theme
-            "    background-color: %s;" % self._palette.shell_background.name() +
-            "    border: 1px solid %s;" % self._palette.shell_border.name() +
-            "} "
-            "QPlainTextEdit:hover, QPlainTextEdit:focus {"
-            "    border: 1px solid %s;" % self._palette.shell_border_focus.name() +
-            "}"
+            (
+                (
+                    (
+                        "QPlainTextEdit {"
+                        "    color: %s;" % self._palette.shell_text.name()
+                        + f"    background-color: {self._palette.shell_background.name()};"
+                    )
+                    + f"    border: 1px solid {self._palette.shell_border.name()};"
+                )
+                + "} "
+                "QPlainTextEdit:hover, QPlainTextEdit:focus {"
+                "    border: 1px solid %s;"
+                % self._palette.shell_border_focus.name()
+                + "}"
+            )
         )
 
         # refresh completer popup style...
         self._completer.popup().setStyleSheet(
-            "background: %s;" % self._palette.shell_hint_background.name() +
-            "color: %s;" % self._palette.shell_hint_text.name()
+            (
+                f"background: {self._palette.shell_hint_background.name()};"
+                + f"color: {self._palette.shell_hint_text.name()};"
+            )
         )
 
     @disassembler.execute_ui
@@ -211,8 +220,7 @@ class ComposingShell(QtWidgets.QWidget):
         # get the detailed coverage strings from the director
         for x in self._director.coverage_names:
             hints.append(self._director.get_coverage_string(x))
-            symbol = self._director.get_shorthand(x)
-            if symbol:
+            if symbol := self._director.get_shorthand(x):
                 self._shorthand.append(symbol)
 
         # install the fresh coverage strings to the hint completer dialog
@@ -474,8 +482,9 @@ class ComposingShell(QtWidgets.QWidget):
         except ValueError:
             pass
         else:
-            functions = self._director.metadata.get_functions_containing(address)
-            if functions:
+            if functions := self._director.metadata.get_functions_containing(
+                address
+            ):
                 return functions[0].address
 
         #
@@ -489,23 +498,17 @@ class ComposingShell(QtWidgets.QWidget):
         # special case to make 'sub_*' prefixed user inputs case insensitive
         if text.lower().startswith("sub_"):
 
-            # attempt uppercase hex (IDA...)
-            function_metadata = self._director.metadata.get_function_by_name("sub_" + text[4:].upper())
-            if function_metadata:
+            if function_metadata := self._director.metadata.get_function_by_name(
+                f"sub_{text[4:].upper()}"
+            ):
                 return function_metadata.address
 
-            # attempt lowercase hex (Binja...)
-            function_metadata = self._director.metadata.get_function_by_name("sub_" + text[4:].lower())
-            if function_metadata:
+            if function_metadata := self._director.metadata.get_function_by_name(
+                f"sub_{text[4:].lower()}"
+            ):
                 return function_metadata.address
 
-        #
-        # no luck yet, let's just throw the user's raw text at the lookup. this
-        # would probably be a function they renamed, such as 'foobar'
-        #
-
-        function_metadata = self._director.metadata.get_function_by_name(text)
-        if function_metadata:
+        if function_metadata := self._director.metadata.get_function_by_name(text):
             return function_metadata.address
 
         #
@@ -651,7 +654,7 @@ class ComposingShell(QtWidgets.QWidget):
         ok, coverage_name = prompt_string(
             "Composition Name:",
             "Please enter a name for this composition",
-            "COMP_%s" % self.text
+            f"COMP_{self.text}",
         )
 
         #
@@ -803,7 +806,7 @@ class ComposingShell(QtWidgets.QWidget):
         for text_token in self._parsed_tokens:
 
             # skip any non-coverage text tokens
-            if not text_token.type == "COVERAGE_TOKEN":
+            if text_token.type != "COVERAGE_TOKEN":
                 continue
 
             # if this coverage text token touches our cursor, return it
@@ -1057,8 +1060,7 @@ class ComposingLine(QtWidgets.QPlainTextEdit):
         """
 
         # trap the return/enter key event
-        if e.key() == QtCore.Qt.Key_Return or \
-           e.key() == QtCore.Qt.Key_Enter:
+        if e.key() in [QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter]:
 
             #
             # fire our convenience signal notifying listeners that the user
@@ -1075,7 +1077,6 @@ class ComposingLine(QtWidgets.QPlainTextEdit):
 
             e.accept()
 
-        # business as usual
         else:
             super(ComposingLine, self).keyPressEvent(e)
 

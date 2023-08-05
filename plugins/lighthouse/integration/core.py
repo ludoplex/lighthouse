@@ -90,7 +90,7 @@ class LighthouseCore(object):
         banner_title  = "v%s - (c) %s - %s" % banner_params
 
         # print plugin banner
-        lmsg("Loaded %s" % banner_title)
+        lmsg(f"Loaded {banner_title}")
 
     #--------------------------------------------------------------------------
     # Disassembler / Database Context Selector
@@ -267,7 +267,7 @@ class LighthouseCore(object):
             return
 
         # prompt the user to name the new coverage aggregate
-        default_name = "BATCH_%s" % lctx.director.peek_shorthand()
+        default_name = f"BATCH_{lctx.director.peek_shorthand()}"
         ok, batch_name = prompt_string(
             "Batch Name:",
             "Please enter a name for this coverage",
@@ -310,7 +310,7 @@ class LighthouseCore(object):
 
         # if batch creation fails...
         if not batch_coverage:
-            lmsg("Creation of batch '%s' failed..." % batch_name)
+            lmsg(f"Creation of batch '{batch_name}' failed...")
             disassembler.hide_wait_box()
             warn_errors(errors)
             return
@@ -321,7 +321,7 @@ class LighthouseCore(object):
 
         # all done! pop the coverage overview to show the user their results
         disassembler.hide_wait_box()
-        lmsg("Successfully loaded batch %s..." % batch_name)
+        lmsg(f"Successfully loaded batch {batch_name}...")
         self.open_coverage_overview(lctx.dctx)
 
         # finally, emit any notable issues that occurred during load

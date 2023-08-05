@@ -44,20 +44,29 @@ class CoverageTableView(QtWidgets.QTableView):
         """
         palette = self._model.lctx.palette
         self.setStyleSheet(
-            "QTableView {"
-            "  gridline-color: %s;" % palette.table_grid.name() +
-            "  background-color: %s;" % palette.table_background.name() +
-            "  color: %s;" % palette.table_text.name() +
-            "  outline: none; "
-            "} " +
-            "QHeaderView::section { "
-            "  padding: 1ex;"  \
-            "  margin: 0;"  \
-            "} " +
-            "QTableView::item:selected {"
-            "  color: white; "
-            "  background-color: %s;" % palette.table_selection.name() +
-            "}"
+            (
+                (
+                    (
+                        (
+                            (
+                                "QTableView {"
+                                "  gridline-color: %s;" % palette.table_grid.name()
+                                + f"  background-color: {palette.table_background.name()};"
+                            )
+                            + f"  color: {palette.table_text.name()};"
+                        )
+                        + "  outline: none; "
+                        "} "
+                    )
+                    + "QHeaderView::section { "
+                    "  padding: 1ex;"
+                    "  margin: 0;"
+                    "} "
+                )
+                + "QTableView::item:selected {"
+                "  color: white; "
+                "  background-color: %s;" % palette.table_selection.name() + "}"
+            )
         )
 
     #--------------------------------------------------------------------------
@@ -374,7 +383,7 @@ class CoverageTableView(QtWidgets.QTableView):
         # get the list rows currently selected in the coverage table
         row_indexes = self.selectionModel().selectedRows()
         rows = [index.row() for index in row_indexes]
-        if len(rows) == 0:
+        if not rows:
             return
 
         # handle the 'Rename' action (only applies to a single function)
@@ -572,7 +581,7 @@ class CoverageTableController(object):
         Dump the orphan coverage data.
         """
         coverage = self.lctx.director.coverage
-        lmsg("Orphan coverage addresses for %s:" % coverage.name)
+        lmsg(f"Orphan coverage addresses for {coverage.name}:")
         self._dump_addresses(coverage.orphan_addresses)
 
     def dump_internal(self):
@@ -580,7 +589,7 @@ class CoverageTableController(object):
         Dump the internal coverage data.
         """
         coverage = self.lctx.director.coverage
-        lmsg("Internal coverage addresses for %s:" % coverage.name)
+        lmsg(f"Internal coverage addresses for {coverage.name}:")
         self._dump_addresses(coverage.unmapped_addresses)
 
     def _dump_addresses(self, coverage_addresses):
@@ -609,22 +618,13 @@ class CoverageTableController(object):
         if function_address == BADADDR:
             return
 
-        #
-        # if there is actually coverage in the function, attempt to locate the
-        # first block (or any block) with coverage and set that as our target
-        #
-
-        function_coverage = self.lctx.director.coverage.functions.get(function_address, None)
-        if function_coverage:
+        if function_coverage := self.lctx.director.coverage.functions.get(
+            function_address, None
+        ):
             if function_address in function_coverage.nodes:
                 target_address = function_address
             else:
                 target_address = sorted(function_coverage.nodes)[0]
-
-        #
-        # if the user clicked a function with no coverage, we should just
-        # navigate to the top of the function... nothing fancy
-        #
 
         else:
             target_address = function_address
@@ -657,7 +657,7 @@ class CoverageTableController(object):
 
         # build filename for the coverage report based off the coverage name
         name, _ = os.path.splitext(self.lctx.director.coverage_name)
-        filename = name + ".html"
+        filename = f"{name}.html"
         suggested_filepath = os.path.join(self._last_directory, filename)
 
         # create & configure a Qt File Dialog for immediate use
@@ -666,7 +666,7 @@ class CoverageTableController(object):
 
         # we construct kwargs here for cleaner PySide/PyQt5 compatibility
         kwargs = \
-        {
+            {
             "filter": "HTML Files (*.html)",
             "caption": "Save HTML Report",
             "directory": suggested_filepath
@@ -684,7 +684,7 @@ class CoverageTableController(object):
         with open(filename, "w") as fd:
             fd.write(self._model.to_html())
 
-        lmsg("Saved HTML report to %s" % filename)
+        lmsg(f"Saved HTML report to {filename}")
 
     #---------------------------------------------------------------------------
     # Internal
@@ -790,9 +790,7 @@ class CoverageTableModel(QtCore.QAbstractTableModel):
 
         # set the default column text alignment for each column (centered)
         self._default_alignment = QtCore.Qt.AlignCenter
-        self._column_alignment = [
-            self._default_alignment for x in self.COLUMN_HEADERS
-        ]
+        self._column_alignment = [self._default_alignment for _ in self.COLUMN_HEADERS]
 
         # make the function name column left aligned by default
         self.set_column_alignment(self.FUNC_NAME, QtCore.Qt.AlignVCenter)
@@ -891,9 +889,9 @@ class CoverageTableModel(QtCore.QAbstractTableModel):
         if role == QtCore.Qt.SizeHintRole:
             title_fm = QtGui.QFontMetricsF(self._title_font)
             title_rect = title_fm.boundingRect(self.COLUMN_HEADERS[column])
-            padded = QtCore.QSize(int(title_rect.width()*1.45), int(title_rect.height()*1.75))
-            return padded
-
+            return QtCore.QSize(
+                int(title_rect.width() * 1.45), int(title_rect.height() * 1.75)
+            )
         # unhandeled header request
         return None
     
@@ -1385,11 +1383,13 @@ class CoverageTableModel(QtCore.QAbstractTableModel):
             #------------------------------------------------------------------
 
             # OPTION: ignore items with 0% coverage items
-            if self._hide_zero and not function_address in coverage.functions:
+            if self._hide_zero and function_address not in coverage.functions:
                 continue
 
             # OPTIONS: ignore items that do not match the search string
-            if not self._search_string in normalize(metadata.functions[function_address].name):
+            if self._search_string not in normalize(
+                metadata.functions[function_address].name
+            ):
                 continue
 
             #------------------------------------------------------------------

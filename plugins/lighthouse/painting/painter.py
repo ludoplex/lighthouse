@@ -133,7 +133,7 @@ class DatabasePainter(object):
         if enabled == self._enabled:
             return
 
-        lmsg("%s painting..." % ("Enabling" if enabled else "Disabling"))
+        lmsg(f'{"Enabling" if enabled else "Disabling"} painting...')
         self._enabled = enabled
 
         # notify listeners that the painter has been enabled/disabled
@@ -457,7 +457,7 @@ class DatabasePainter(object):
         text = "Repainting the database..."
         logger.debug(text)
 
-        is_modal = bool(disassembler.NAME != "IDA")
+        is_modal = disassembler.NAME != "IDA"
         disassembler.execute_ui(disassembler.show_wait_box)(text, False)
 
         start = time.time()
@@ -505,7 +505,7 @@ class DatabasePainter(object):
         # so the UI will be mostly frozen to the user anyway!
         #
 
-        is_modal = bool(disassembler.NAME != "IDA")
+        is_modal = disassembler.NAME != "IDA"
         disassembler.execute_ui(disassembler.show_wait_box)(text, is_modal)
 
         start = time.time()
@@ -548,8 +548,12 @@ class DatabasePainter(object):
         rebase_offset = db_metadata.imagebase - self._imagebase
 
         # rebase the cached addresses of what we have painted
-        self._painted_nodes = set([address+rebase_offset for address in self._painted_nodes])
-        self._painted_instructions = set([address+rebase_offset for address in self._painted_instructions])
+        self._painted_nodes = {
+            address + rebase_offset for address in self._painted_nodes
+        }
+        self._painted_instructions = {
+            address + rebase_offset for address in self._painted_instructions
+        }
         self._imagebase = db_metadata.imagebase
 
         # a rebase has been observed
@@ -579,33 +583,26 @@ class DatabasePainter(object):
             if action == self.MSG_REPAINT:
                 result = self._paint_database()
 
-            # forcibly repaint the database based on the current state
             elif action == self.MSG_FORCE_REPAINT:
                 result = self._force_paint_database()
 
-            # clear database base on the current state
             elif action == self.MSG_CLEAR:
                 result = self._clear_database()
 
-            # clear all possible database paint
             elif action == self.MSG_FORCE_CLEAR:
                 result = self._force_clear_database()
 
-            # check for a rebase of the painted data
             elif action == self.MSG_REBASE:
                 result = self._rebase_database()
 
-            # thrown internally to escape a stale paint, just ignore
             elif action == self.MSG_ABORT:
                 continue
 
-            # spin down the painting thread (this thread)
             elif action == self.MSG_TERMINATE:
                 break
 
-            # unknown command
             else:
-                logger.error("UNKNOWN COMMAND! %s" % str(action))
+                logger.error(f"UNKNOWN COMMAND! {str(action)}")
                 break
 
             # refresh the UI to ensure paint changes are rendered

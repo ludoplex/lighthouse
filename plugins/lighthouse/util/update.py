@@ -47,7 +47,7 @@ def async_update_check(current_version, callback):
     version_local = int(''.join(re.findall('\d+', current_version)))
 
     # no updates available...
-    logger.debug(" - Local: '%s' vs Remote: '%s'" % (current_version, remote_version))
+    logger.debug(f" - Local: '{current_version}' vs Remote: '{remote_version}'")
     if version_local >= version_remote:
         logger.debug(" - No update needed...")
         return

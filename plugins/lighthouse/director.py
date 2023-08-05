@@ -27,11 +27,11 @@ logger = logging.getLogger("Lighthouse.Director")
 HOT_SHELL       = "Hot Shell"
 NEW_COMPOSITION = "New Composition"
 AGGREGATE       = "Aggregate"
-SPECIAL_NAMES   = set([HOT_SHELL, AGGREGATE, NEW_COMPOSITION])
+SPECIAL_NAMES = {HOT_SHELL, AGGREGATE, NEW_COMPOSITION}
 
 AGGREGATE_ALIAS = '*'
 ASCII_SHORTHAND = list(string.ascii_uppercase)
-SHORTHAND_ALIASES = set([AGGREGATE_ALIAS]) | set(ASCII_SHORTHAND)
+SHORTHAND_ALIASES = {AGGREGATE_ALIAS} | set(ASCII_SHORTHAND)
 
 RESERVED_NAMES = SHORTHAND_ALIASES | SPECIAL_NAMES
 
@@ -589,8 +589,11 @@ class CoverageDirector(object):
 
         try:
             coverage_blocks = coverage_file.get_offset_blocks(module_name)
-            coverage_addresses = [imagebase+offset for bb_start, bb_len in coverage_blocks for offset in xrange(bb_start, bb_start+bb_len)]
-            return coverage_addresses
+            return [
+                imagebase + offset
+                for bb_start, bb_len in coverage_blocks
+                for offset in xrange(bb_start, bb_start + bb_len)
+            ]
         except NotImplementedError:
             pass
 
@@ -600,8 +603,7 @@ class CoverageDirector(object):
 
         try:
             coverage_offsets = coverage_file.get_offsets(module_name)
-            coverage_addresses = [imagebase+offset for offset in coverage_offsets]
-            return coverage_addresses
+            return [imagebase+offset for offset in coverage_offsets]
         except NotImplementedError:
             pass
 
@@ -610,8 +612,7 @@ class CoverageDirector(object):
         #
 
         try:
-            coverage_addresses = coverage_file.get_addresses(module_name)
-            return coverage_addresses
+            return coverage_file.get_addresses(module_name)
         except NotImplementedError:
             pass
 
@@ -723,29 +724,20 @@ class CoverageDirector(object):
         if len(target_name) < 6:
             return None
 
-        #
-        # 3. try to match *{target_name}*{extension} in module_name, assuming
-        # target_name is more than 6 characters and there is no other ambiguity
-        #
+        if possible_names := [
+            clean_module_names[module_name]
+            for module_name in clean_module_names
+            if target_name in module_name.lower()
+            and extension in module_name.lower()
+        ]:
+                #
+                # if there is multiple potential matches it is too risky to pick one,
+                # so we are not going to return anything as a viable match
+                #
 
-        possible_names = []
-        for module_name in clean_module_names:
-            if target_name in module_name.lower() and extension in module_name.lower():
-                possible_names.append(clean_module_names[module_name])
-
-        # there were no matches on the wildcarding, so we're done
-        if not possible_names:
+            return None if len(possible_names) > 1 else possible_names[0]
+        else:
             return None
-
-        #
-        # if there is multiple potential matches it is too risky to pick one,
-        # so we are not going to return anything as a viable match
-        #
-
-        if len(possible_names) > 1:
-            return None
-
-        return possible_names[0]
 
     #----------------------------------------------------------------------
     # Coverage Management
@@ -755,22 +747,18 @@ class CoverageDirector(object):
         """
         Return a list of database coverage objects containing the given address.
         """
-        found = []
-
-        for name, db_coverage in iteritems(self._database_coverage):
-            if address in db_coverage.coverage:
-                found.append(db_coverage)
-
-        return found
+        return [
+            db_coverage
+            for name, db_coverage in iteritems(self._database_coverage)
+            if address in db_coverage.coverage
+        ]
 
     def get_address_file(self, address):
         """
         Return a list of coverage filepaths containing the given address.
         """
         node = self.metadata.get_node(address)
-        if not node:
-            return []
-        return list(self.owners.get(node.address, []))
+        return [] if not node else list(self.owners.get(node.address, []))
 
     def create_coverage(self, coverage_name, coverage_data, coverage_filepath=None):
         """
@@ -782,11 +770,11 @@ class CoverageDirector(object):
         """
         Activate a loaded coverage mapping by name.
         """
-        logger.debug("Selecting coverage %s" % coverage_name)
+        logger.debug(f"Selecting coverage {coverage_name}")
 
         # ensure a coverage mapping actually exists for the given coverage_name
-        if not (coverage_name in self.all_names):
-            raise ValueError("No coverage matching '%s' was found" % coverage_name)
+        if coverage_name not in self.all_names:
+            raise ValueError(f"No coverage matching '{coverage_name}' was found")
 
         # if the given name is already active, there's nothing to do
         if self.coverage_name == coverage_name:
@@ -806,13 +794,13 @@ class CoverageDirector(object):
         """
         Create or update a databases coverage mapping.
         """
-        assert not (coverage_name in RESERVED_NAMES)
+        assert coverage_name not in RESERVED_NAMES
         updating_coverage = coverage_name in self.coverage_names
 
         if updating_coverage:
-            logger.debug("Updating coverage %s" % coverage_name)
+            logger.debug(f"Updating coverage {coverage_name}")
         else:
-            logger.debug("Adding coverage %s" % coverage_name)
+            logger.debug(f"Adding coverage {coverage_name}")
 
         # create a new database coverage mapping from the given coverage data
         new_coverage = DatabaseCoverage(
@@ -897,7 +885,7 @@ class CoverageDirector(object):
         elif coverage_name == AGGREGATE:
             self._delete_aggregate_coverage()
         else:
-            raise ValueError("Cannot delete %s, does not exist" % coverage_name)
+            raise ValueError(f"Cannot delete {coverage_name}, does not exist")
 
         # notify any listeners that we have deleted coverage
         self._notify_coverage_deleted()
@@ -957,7 +945,7 @@ class CoverageDirector(object):
         """
 
         # special cases that should be static
-        if coverage_name == HOT_SHELL or coverage_name == NEW_COMPOSITION:
+        if coverage_name in [HOT_SHELL, NEW_COMPOSITION]:
             return coverage_name
 
         symbol = self.get_shorthand(coverage_name)
@@ -982,8 +970,8 @@ class CoverageDirector(object):
         """
         Assign an alias to a loaded database coverage mapping.
         """
-        assert not (alias in self.all_names)
-        assert not (alias in RESERVED_NAMES)
+        assert alias not in self.all_names
+        assert alias not in RESERVED_NAMES
         self._alias_coverage(coverage_name, alias)
 
     def _alias_coverage(self, coverage_name, alias):
@@ -1042,7 +1030,7 @@ class CoverageDirector(object):
         """
         Assign the next shorthand A-Z alias to the given coverage.
         """
-        logger.debug("Requesting shorthand alias for %s" % coverage_name)
+        logger.debug(f"Requesting shorthand alias for {coverage_name}")
         assert coverage_name in self.coverage_names
 
         # get the next available symbol (A-Z) from the shorthand pool
@@ -1059,7 +1047,7 @@ class CoverageDirector(object):
         """
         Release the shorthand alias of the given coverage_name.
         """
-        logger.debug("Releasing shorthand alias for %s" % coverage_name)
+        logger.debug(f"Releasing shorthand alias for {coverage_name}")
         assert coverage_name in self.coverage_names
 
         # get the shorthand symbol for the given coverage
@@ -1093,9 +1081,9 @@ class CoverageDirector(object):
         """
         Evaluate and add a new composition to the director.
         """
-        assert not (composite_name in RESERVED_NAMES)
+        assert composite_name not in RESERVED_NAMES
         updating_coverage = composite_name in self.coverage_names
-        logger.debug("Adding composition %s" % composite_name)
+        logger.debug(f"Adding composition {composite_name}")
 
         # evaluate the last AST into a coverage set
         composite_coverage = self._evaluate_composition(ast)
@@ -1138,7 +1126,7 @@ class CoverageDirector(object):
 
             # get the next coverage expression (an AST) to evaluate
             ast = self._ast_queue.get()
-            if ast == None:
+            if ast is None:
                 break
 
             # produce a single composite coverage mapping as described by the AST
@@ -1155,7 +1143,7 @@ class CoverageDirector(object):
             if self.coverage_name == HOT_SHELL:
                 self._notify_coverage_modified()
 
-            # loop and wait for the next AST to evaluate
+                # loop and wait for the next AST to evaluate
 
         # thread exit
         logger.debug("Exiting EvaluateAST thread...")
@@ -1258,39 +1246,7 @@ class CoverageDirector(object):
 
             composition_hash = node.operator(op1.coverage_hash, op2.coverage_hash)
 
-            #
-            # evaluating an AST produces lots of 'transient' compositions. To
-            # mitigate unnecessary re-computation, we maintain a small LRU cache
-            # of these compositions to draw from during subsequent evaluations.
-            #
-            #   eg:
-            #       evaluating the input
-            #
-            #         (A | B) - (C | D)
-            #
-            #       produces
-            #
-            #         COMP_1 = (A | B)
-            #         COMP_2 = (C | D)
-            #         COMP_3 = COMP_1 - COMP_2
-            #
-            # in the example above, COMP_3 is the final evaluated result that
-            # will be returned to the user, while COMP_1/COMP_2 would normally
-            # be discarded. Instead, we cache all of these compositions
-            # (1, 2, 3) as they may be useful to us in future evaluations.
-            #
-            # later, if the user then choses to evaluate (A | B) - (Z | D), our
-            # cache can retrieve the fully computed (A | B) composition
-            # assuming it has not been evicted.
-            #
-            # this makes Lighthouse far more performant for repeated operations
-            #
-
-            # check the cache to see if this composition was recently computed
-            cached_coverage = self._composition_cache[composition_hash]
-
-            # if the composition was found in the cache, return that for speed
-            if cached_coverage:
+            if cached_coverage := self._composition_cache[composition_hash]:
                 return cached_coverage
 
             #
@@ -1310,11 +1266,6 @@ class CoverageDirector(object):
             # cache & return the newly computed composition
             self._composition_cache[composition_hash] = new_composition
             return new_composition
-
-        #
-        # if the current AST node is a coverage token, we need simply need to
-        # return its associated DatabaseCoverage.
-        #
 
         elif isinstance(node, TokenCoverageSingle):
             return self._evaluate_coverage(node)
@@ -1407,7 +1358,7 @@ class CoverageDirector(object):
         logger.debug("Refreshing database coverage mappings")
 
         for i, name in enumerate(self.all_names, 1):
-            logger.debug(" - %s" % name)
+            logger.debug(f" - {name}")
             disassembler.replace_wait_box(
                 "Refreshing coverage mapping %u/%u" % (i, len(self.all_names))
             )
@@ -1454,10 +1405,7 @@ class CompositionCache(object):
         """
         Update the cache with the given entry.
         """
-        result = self._cache.pop(key, None)
-
-        # item is already in the cache, touch it.
-        if result:
+        if result := self._cache.pop(key, None):
             self._cache[key] = result
             return
 

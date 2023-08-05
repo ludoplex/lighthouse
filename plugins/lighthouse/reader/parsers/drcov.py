@@ -78,11 +78,7 @@ class DrcovData(CoverageFile):
         # extract the unique module ids that we need to collect blocks for
         mod_ids = [module.id for module in modules]
 
-        # loop through the coverage data and filter out data for the target ids
-        coverage_blocks = [bb.start for bb in self.bbs if bb.mod_id in mod_ids]
-
-        # return the filtered coverage blocks
-        return coverage_blocks
+        return [bb.start for bb in self.bbs if bb.mod_id in mod_ids]
 
     def get_offset_blocks(self, module_name):
         """
@@ -99,11 +95,7 @@ class DrcovData(CoverageFile):
         # extract the unique module ids that we need to collect blocks for
         mod_ids = [module.id for module in modules]
 
-        # loop through the coverage data and filter out data for the target ids
-        coverage_blocks = [(bb.start, bb.size) for bb in self.bbs if bb.mod_id in mod_ids]
-
-        # return the filtered coverage blocks
-        return coverage_blocks
+        return [(bb.start, bb.size) for bb in self.bbs if bb.mod_id in mod_ids]
 
     #--------------------------------------------------------------------------
     # Parsing Routines - Top Level
@@ -192,7 +184,7 @@ class DrcovData(CoverageFile):
         data_name, version = version_data.split(" ")
         #assert data_name == "version"
         self.module_table_version = int(version)
-        if not self.module_table_version in [2, 3, 4, 5]:
+        if self.module_table_version not in {2, 3, 4, 5}:
             raise ValueError("Unsupported (new?) drcov log format...")
 
         # parse module count in table from 'count Y'
@@ -251,7 +243,7 @@ class DrcovData(CoverageFile):
         modules = collections.defaultdict(list)
 
         # loop through each *expected* line in the module table and parse it
-        for i in range(self.module_table_count):
+        for _ in range(self.module_table_count):
             module = DrcovModule(f.readline().decode('utf-8').strip(), self.module_table_version)
             modules[module.filename].append(module)
 
@@ -286,13 +278,7 @@ class DrcovData(CoverageFile):
         saved_position = f.tell()
 
         # is this an ascii table?
-        if f.read(len(token)) == token:
-            self.bb_table_is_binary = False
-
-        # nope! binary table
-        else:
-            self.bb_table_is_binary = True
-
+        self.bb_table_is_binary = f.read(len(token)) != token
         # seek back to the start of the table
         f.seek(saved_position)
 
@@ -322,7 +308,7 @@ class DrcovData(CoverageFile):
             raise ValueError("Invalid BB header: %r" % table_header)
 
         pattern = re.compile(r"^module\[\s*(?P<mod>[0-9]+)\]\:\s*(?P<start>0x[0-9a-fA-F]+)\,\s*(?P<size>[0-9]+)$")
-        for i, bb in enumerate(self.bbs):
+        for bb in self.bbs:
             text_entry = f.readline().decode('utf-8').strip()
             if not text_entry:
                 continue
@@ -331,9 +317,9 @@ class DrcovData(CoverageFile):
             if not match:
                 raise ValueError("Invalid BB entry: %r" % text_entry)
 
-            bb.start = int(match.group("start"), 16)
-            bb.size = int(match.group("size"), 10)
-            bb.mod_id = int(match.group("mod"), 10)
+            bb.start = int(match["start"], 16)
+            bb.size = int(match["size"], 10)
+            bb.mod_id = int(match["mod"], 10)
 
 #------------------------------------------------------------------------------
 # drcov module parser
@@ -502,7 +488,7 @@ if __name__ == "__main__":
 
     # base usage
     if argc < 2:
-        print("usage: {} <coverage filename>".format(os.path.basename(sys.argv[0])))
+        print(f"usage: {os.path.basename(sys.argv[0])} <coverage filename>")
         sys.exit()
 
     # attempt file parse

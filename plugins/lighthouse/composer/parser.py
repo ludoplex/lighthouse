@@ -227,7 +227,7 @@ class ParseError(SyntaxError):
             self.error_index = self.parsed_tokens[-1].span[1]
 
     def __str__(self):
-        return "%s: at %s, %s" % (self.__class__.__name__, self.error_token.span, self.msg)
+        return f"{self.__class__.__name__}: at {self.error_token.span}, {self.msg}"
 
 #------------------------------------------------------------------------------
 # Composition Parser
@@ -287,7 +287,9 @@ class CompositionParser(object):
         # reflect the state of loaded coverage
         #
 
-        COVERAGE_TOKEN = r'(?P<COVERAGE_TOKEN>[%s])' % ''.join(coverage_tokens + [AGGREGATE_TOKEN])
+        COVERAGE_TOKEN = (
+            f"(?P<COVERAGE_TOKEN>[{''.join(coverage_tokens + [AGGREGATE_TOKEN])}])"
+        )
 
         #
         # if there were any coverage tokens defined, then we definitely need
@@ -378,12 +380,7 @@ class CompositionParser(object):
             LOGIC_TOKEN COMPOSITION | None
         """
 
-        #
-        # LOGIC_TOKEN COMPOSITION
-        #
-
-        logic_op = self._LOGIC_TOKEN()
-        if logic_op:
+        if logic_op := self._LOGIC_TOKEN():
             composition = self._COMPOSITION()
             return TokenLogicOperator(logic_op, head, composition)
 

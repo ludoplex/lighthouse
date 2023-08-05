@@ -339,10 +339,10 @@ class DatabaseCoverage(object):
             else:
                 self.partial_nodes.discard(address)
 
-        # finalize the set of instructions executed in partially executed nodes
-        instructions = []
-        for node_address in self.partial_nodes:
-            instructions.append(self.nodes[node_address].executed_instructions)
+        instructions = [
+            self.nodes[node_address].executed_instructions
+            for node_address in self.partial_nodes
+        ]
         self.partial_instructions = set(itertools.chain.from_iterable(instructions))
 
     def _finalize_functions(self, dirty_functions):
@@ -766,7 +766,11 @@ class FunctionCoverage(object):
         """
         Return the executed instruction addresses in this function.
         """
-        return set([ea for node in itervalues(self.nodes) for ea in node.executed_instructions.keys()])
+        return {
+            ea
+            for node in itervalues(self.nodes)
+            for ea in node.executed_instructions.keys()
+        }
 
     #--------------------------------------------------------------------------
     # Controls

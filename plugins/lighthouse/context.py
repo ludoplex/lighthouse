@@ -104,7 +104,7 @@ class LighthouseContext(object):
         # log the captured (selected) filenames from the dialog
         logger.debug("Captured filenames from file dialog:")
         for name in filenames:
-            logger.debug(" - %s" % name)
+            logger.debug(f" - {name}")
 
         # return the captured filenames
         return filenames

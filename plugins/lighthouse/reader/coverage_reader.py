@@ -39,18 +39,17 @@ class CoverageReader(object):
 
         # attempt to parse the given coverage file with each available parser
         for name, parser in iteritems(self._installed_parsers):
-            logger.debug("Attempting parse with '%s'" % name)
+            logger.debug(f"Attempting parse with '{name}'")
 
             # attempt to open/parse the coverage file with the given parser
             try:
                 coverage_file = parser(filepath)
                 break
 
-            # log the exceptions for each parse failure
             except Exception as e:
                 parse_failures[name] = traceback.format_exc()
-                logger.debug("| Parse FAILED - " + str(e))
-                #logger.exception("| Parse FAILED")
+                logger.debug(f"| Parse FAILED - {str(e)}")
+                        #logger.exception("| Parse FAILED")
 
         #
         # if *all* the coverage file parsers failed, raise an exception with
@@ -79,17 +78,18 @@ class CoverageReader(object):
                 continue
 
             # attempt to load a CoverageFile format from the current *.py file
-            logger.debug("| Searching file %s" % filename)
+            logger.debug(f"| Searching file {filename}")
             parser_file = filename[:-3]
             parser_class = self._locate_subclass(parser_file, target_subclass)
 
             if not parser_class:
-                logger.warning("| - No object subclassing from %s found in %s..." \
-                             % (target_subclass.__name__, parser_file))
+                logger.warning(
+                    f"| - No object subclassing from {target_subclass.__name__} found in {parser_file}..."
+                )
                 continue
 
             # instantiate and add the parser to our dict of imported parsers
-            logger.debug("| | Found %s" % parser_class.__name__)
+            logger.debug(f"| | Found {parser_class.__name__}")
             self._installed_parsers[parser_class.__name__] = parser_class
         logger.debug("+- Done dynamically importing parsers")
 
@@ -112,7 +112,12 @@ class CoverageReader(object):
 
         # attempt to import the given filepath as a python module
         try:
-            module = __import__("lighthouse.reader.parsers." + module_file, globals(), locals(), ['object'])
+            module = __import__(
+                f"lighthouse.reader.parsers.{module_file}",
+                globals(),
+                locals(),
+                ['object'],
+            )
         except Exception as e:
             logger.exception("| - Parser import failed")
             return None

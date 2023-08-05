@@ -249,14 +249,18 @@ class CoverageComboBox(QtWidgets.QComboBox):
 
         # style the combobox dropdown
         self.setStyleSheet(
-            "QComboBox {"
-            "   color: %s;" % palette.combobox_text.name() +
-            "   border: 1px solid %s;" % palette.combobox_border.name() +
-            "   padding: 0;"
-            "} "
-            "QComboBox:hover, QComboBox:focus {"
-            "   border: 1px solid %s;" % palette.combobox_border_focus.name() +
-            "}"
+            (
+                (
+                    "QComboBox {"
+                    "   color: %s;" % palette.combobox_text.name()
+                    + f"   border: 1px solid {palette.combobox_border.name()};"
+                )
+                + "   padding: 0;"
+                "} "
+                "QComboBox:hover, QComboBox:focus {"
+                "   border: 1px solid %s;" % palette.combobox_border_focus.name()
+                + "}"
+            )
         )
 
     @disassembler.execute_ui
@@ -491,19 +495,33 @@ class CoverageComboBoxView(QtWidgets.QTableView):
         """
         palette = self.model()._director.palette
         self.setStyleSheet(
-            "QTableView {"
-            "  background-color: %s;" % palette.combobox_background.name() +
-            "  color: %s;" % palette.combobox_text.name() +
-            "  margin: 0; outline: none;"
-            "  border: 1px solid %s; " % palette.shell_border.name() +
-            "} "
-            "QTableView::item { " +
-            "  padding: 0.5ex; border: 0; "
-            "} "
-            "QTableView::item:focus { " +
-            "  background-color: %s; " % palette.combobox_selection_background.name() +
-            "  color: %s; " % palette.combobox_selection_text.name() +
-            "} "
+            (
+                (
+                    (
+                        (
+                            (
+                                (
+                                    "QTableView {"
+                                    "  background-color: %s;"
+                                    % palette.combobox_background.name()
+                                    + f"  color: {palette.combobox_text.name()};"
+                                )
+                                + "  margin: 0; outline: none;"
+                                "  border: 1px solid %s; "
+                                % palette.shell_border.name()
+                                + "} "
+                                "QTableView::item { "
+                            )
+                            + "  padding: 0.5ex; border: 0; "
+                            "} "
+                            "QTableView::item:focus { "
+                        )
+                        + f"  background-color: {palette.combobox_selection_background.name()}; "
+                    )
+                    + f"  color: {palette.combobox_selection_text.name()}; "
+                )
+                + "} "
+            )
         )
 
 #------------------------------------------------------------------------------
@@ -619,29 +637,25 @@ class CoverageComboBoxModel(QtCore.QAbstractTableModel):
 
         # sanity check the given index
         if not index.isValid() or \
-           not (index.row()    < self.rowCount()) or \
-           not (index.column() < self.columnCount()):
+               not (index.row()    < self.rowCount()) or \
+               not (index.column() < self.columnCount()):
             return None
 
         # font format request
         if role == QtCore.Qt.FontRole:
             return self._font
 
-        # text alignment request
         elif role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignVCenter | QtCore.Qt.AlignLeft
 
-        # combobox header, padded with "   " to account for dropdown arrow overlap
         elif role == QtCore.Qt.EditRole:
             if index.column() == COLUMN_COVERAGE_STRING and index.row() != self._seperator_index:
-                return self._director.get_coverage_string(self._entries[index.row()]) + "   "
+                return f"{self._director.get_coverage_string(self._entries[index.row()])}   "
 
-        # data display request
         elif role == QtCore.Qt.DisplayRole:
             if index.column() == COLUMN_COVERAGE_STRING and index.row() != self._seperator_index:
                 return self._director.get_coverage_string(self._entries[index.row()])
 
-        # tooltip
         elif role == QtCore.Qt.ToolTipRole:
             if index.column() == COLUMN_COVERAGE_STRING and index.row() != self._seperator_index:
                 coverage = self._director.get_coverage(self._entries[index.row()])
@@ -649,7 +663,6 @@ class CoverageComboBoxModel(QtCore.QAbstractTableModel):
             elif index.column() == COLUMN_DELETE:
                 return "Delete loaded coverage"
 
-        # icon display request
         elif role == QtCore.Qt.DecorationRole:
 
             # the icon request is for the 'X' column
@@ -671,7 +684,6 @@ class CoverageComboBoxModel(QtCore.QAbstractTableModel):
                 elif self._entries[index.row()] == "Aggregate":
                     return self._delete_icon
 
-        # entry type request
         elif role == QtCore.Qt.AccessibleDescriptionRole:
 
             #
@@ -697,7 +709,6 @@ class CoverageComboBoxModel(QtCore.QAbstractTableModel):
             else:
                 return ENTRY_USER
 
-        # entry coverage_name request
         elif role == QtCore.Qt.UserRole:
             return self._entries[index.row()]
 
@@ -729,12 +740,11 @@ class CoverageComboBoxModel(QtCore.QAbstractTableModel):
         Refresh the coverage combobox model data.
         """
 
-        # extract all the names from the director with a shorthand symbol
-        with_shorthand = []
-        for name in self._director.coverage_names:
-            if self._director.get_shorthand(name):
-                with_shorthand.append(name)
-
+        with_shorthand = [
+            name
+            for name in self._director.coverage_names
+            if self._director.get_shorthand(name)
+        ]
         # re-populate the model entries
         self._entries  = []
         self._entries += list(self._director.special_names)

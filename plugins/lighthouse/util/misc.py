@@ -70,10 +70,7 @@ def test_color_brightness(color):
     """
     Test the brightness of a color.
     """
-    if color.lightness() > 255.0/2:
-        return "light"
-    else:
-        return "dark"
+    return "light" if color.lightness() > 255.0/2 else "dark"
 
 #------------------------------------------------------------------------------
 # Python Util
@@ -106,7 +103,7 @@ def hex_list(items):
 
     [0, 5420, 1942512] --> '[0x0, 0x152C, 0x1DA30]'
     """
-    return '[{}]'.format(', '.join('0x%X' % x for x in items))
+    return f"[{', '.join('0x%X' % x for x in items)}]"
 
 def human_timestamp(timestamp):
     """
@@ -119,11 +116,9 @@ def get_string_between(text, before, after):
     """
     Get the string between two strings.
     """
-    pattern = "%s(.*)%s" % (before, after)
+    pattern = f"{before}(.*){after}"
     result = re.search(pattern, text)
-    if not result:
-        return None
-    return result.group(1)
+    return None if not result else result[1]
 
 #------------------------------------------------------------------------------
 # Python Callback / Signals

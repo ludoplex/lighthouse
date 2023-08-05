@@ -176,16 +176,7 @@ class DatabaseMetadata(object):
         # big it really is. return -1
         #
 
-        if not node_metadata:
-            return -1
-
-        #
-        # if the address falls within a node, attempt to return the size of the
-        # instruction at its address. if the address is misaligned / in the
-        # middle of an instruction, simply return 0
-        #
-
-        return node_metadata.instructions.get(address, 0)
+        return -1 if not node_metadata else node_metadata.instructions.get(address, 0)
 
     def get_node(self, address):
         """
@@ -218,9 +209,9 @@ class DatabaseMetadata(object):
         if not (node_metadata and address in node_metadata.instructions):
             node_metadata = self.nodes.get(self._node_addresses[index-1], None)
 
-            # double fault, let's just dip...
-            if not (node_metadata and address in node_metadata.instructions):
-                return None
+        # double fault, let's just dip...
+        if not (node_metadata and address in node_metadata.instructions):
+            return None
 
         #
         # if the selected node metadata contains the given target address, it
@@ -243,10 +234,10 @@ class DatabaseMetadata(object):
         """
         Get the list of function metadata objects that contain the given address.
         """
-        node_metadata = self.get_node(address)
-        if not node_metadata:
+        if node_metadata := self.get_node(address):
+            return self.get_functions_by_node(node_metadata.address)
+        else:
             return []
-        return self.get_functions_by_node(node_metadata.address)
 
     def get_function_by_name(self, function_name):
         """
@@ -330,7 +321,7 @@ class DatabaseMetadata(object):
 
         Returns a future (Queue) that will carry the completion message.
         """
-        assert self._refresh_worker == None, 'Refresh already running'
+        assert self._refresh_worker is None, 'Refresh already running'
         result_queue = queue.Queue()
 
         #
@@ -505,7 +496,7 @@ class DatabaseMetadata(object):
 
         #----------------------------------------------------------------------
         end = time.time()
-        logger.debug("Metadata collection took %s seconds" % (end - start))
+        logger.debug(f"Metadata collection took {end - start} seconds")
 
         # refresh the internal function/node fast lookup lists
         self._refresh_lookup()
@@ -519,7 +510,7 @@ class DatabaseMetadata(object):
         self.cached = True
 
         # detect & notify of a rebase event
-        if prev_imagebase != BADADDR and prev_imagebase != self.imagebase:
+        if prev_imagebase not in [BADADDR, self.imagebase]:
             self._notify_rebased(prev_imagebase, self.imagebase)
 
         # return true/false to indicates completion
@@ -656,16 +647,10 @@ class DatabaseMetadata(object):
         """
         Cache the list of instructions by doing a full scrape of the Binary Ninja database.
         """
-        instructions = []
-
-        #
-        # since 'code' does not exist outside of functions in binary ninja,
-        # just scrape instructions from our existing cached nodes
-        #
-
-        for function_metadata in itervalues(self.functions):
-            instructions.append(function_metadata.instructions)
-
+        instructions = [
+            function_metadata.instructions
+            for function_metadata in itervalues(self.functions)
+        ]
         # commit the updated instruction list
         self.instructions = sorted(list(set(itertools.chain.from_iterable(instructions))))
 
@@ -714,8 +699,8 @@ class DatabaseMetadata(object):
             return
 
         logger.debug("Name changing @ 0x%X" % address)
-        logger.debug("  Old name: %s" % function.name.encode("utf-8"))
-        logger.debug("  New name: %s" % new_name.encode("utf-8"))
+        logger.debug(f'  Old name: {function.name.encode("utf-8")}')
+        logger.debug(f'  New name: {new_name.encode("utf-8")}')
 
         # update the function name in the cached lookup & rename it for real
         self._name2func[new_name] = self._name2func.pop(function.name)
@@ -973,7 +958,7 @@ class FunctionMetadata(object):
         # current node (node_address) to walk the function graph
         #
 
-        to_walk = set([self.address]) if self.nodes else set()
+        to_walk = {self.address} if self.nodes else set()
         while to_walk:
 
             # this is the address of the node we will 'walk' from
@@ -998,13 +983,13 @@ class FunctionMetadata(object):
 
             # update the map of confirmed (walked) edges
             confirmed_edges[current_src] = self.edges.pop(current_src)
-            
+
         #
         # retain only the 'confirmed' edges. this may differ from the
         # original edge map because we are only keeping edges that can be
         # walked from the function entry. (eg, no ida exception handlers)
         #
-        
+
         self.edges = confirmed_edges
 
         # compute the final cyclomatic complexity for the function
@@ -1145,7 +1130,7 @@ class NodeMetadata(object):
         output += " Size: %u\n" % self.size
         output += " Instruction Count: %u\n" % self.instruction_count
         output += " Id: %u\n" % self.id
-        output += " Instructions: %s" % self.instructions
+        output += f" Instructions: {self.instructions}"
         return output
 
     def __contains__(self, address):
@@ -1154,9 +1139,7 @@ class NodeMetadata(object):
 
         This allows us to use `in` to check if an address falls within a node.
         """
-        if self.address <= address < self.address + self.size:
-            return True
-        return False
+        return self.address <= address < self.address + self.size
 
     def __eq__(self, other):
         """

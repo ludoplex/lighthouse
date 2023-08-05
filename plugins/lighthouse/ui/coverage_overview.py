@@ -50,15 +50,11 @@ class CoverageOverview(object):
 
     @property
     def name(self):
-        if not self.widget:
-            return "Coverage Overview"
-        return self.widget.name
+        return "Coverage Overview" if not self.widget else self.widget.name
 
     @property
     def visible(self):
-        if not self.widget:
-            return False
-        return self.widget.visible
+        return False if not self.widget else self.widget.visible
 
     def terminate(self):
         """

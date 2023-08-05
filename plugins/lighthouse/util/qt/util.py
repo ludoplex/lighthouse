@@ -90,22 +90,19 @@ def move_mouse_event(mouse_event, position):
     """
     Move the given mouse event to a different position.
     """
-    new_event = QtGui.QMouseEvent(
+    return QtGui.QMouseEvent(
         mouse_event.type(),
         position,
         mouse_event.button(),
         mouse_event.buttons(),
-        mouse_event.modifiers()
+        mouse_event.modifiers(),
     )
-    return new_event
 
 def normalize_to_dpi(font_size):
     """
     Normalize the given font size based on the system DPI.
     """
-    if sys.platform == "darwin": # macos is lame
-        return font_size + 2
-    return font_size
+    return font_size + 2 if sys.platform == "darwin" else font_size
 
 def prompt_string(label, title, default=""):
     """

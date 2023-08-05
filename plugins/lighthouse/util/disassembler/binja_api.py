@@ -186,8 +186,7 @@ class BinjaCoreAPI(DisassemblerCoreAPI):
         if not vf:
             return None
         vi = vf.getCurrentViewInterface()
-        bv = vi.getData()
-        return bv
+        return vi.getData()
 
 class BinjaContextAPI(DisassemblerContextAPI):
 
@@ -222,9 +221,7 @@ class BinjaContextAPI(DisassemblerContextAPI):
         if not vf:
             return 0
         ac = vf.actionContext()
-        if not ac:
-            return 0
-        return ac.address
+        return 0 if not ac else ac.address
 
     @BinjaCoreAPI.execute_read
     def get_database_directory(self):
@@ -236,16 +233,12 @@ class BinjaContextAPI(DisassemblerContextAPI):
 
     def get_function_name_at(self, address):
         func = self.bv.get_function_at(address)
-        if not func:
-            return None
-        return func.symbol.short_name
+        return None if not func else func.symbol.short_name
 
     @BinjaCoreAPI.execute_read
     def get_function_raw_name_at(self, address):
         func = self.bv.get_function_at(address)
-        if not func:
-            return None
-        return func.name
+        return None if not func else func.name
 
     @not_mainthread
     def get_imagebase(self):
@@ -334,7 +327,7 @@ class RenameHooks(binaryview.BinaryDataNotification):
 
     def __symbol_handler(self, view, symbol):
         func = self._bv.get_function_at(symbol.address)
-        if not func or not func.start == symbol.address:
+        if not func or func.start != symbol.address:
             return
         self.name_changed(symbol.address, symbol.name)
 

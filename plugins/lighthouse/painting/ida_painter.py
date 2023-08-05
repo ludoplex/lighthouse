@@ -439,13 +439,12 @@ class IDAPainter(DatabasePainter):
             self._vduis[vdui.view_idx] = vdui
 
             # if there's no coverage data for this function, there's nothing to do
-            if not cfunc.entry_ea in self.director.coverage.functions:
+            if cfunc.entry_ea not in self.director.coverage.functions:
                 return 0
 
             # paint the decompilation text for this function
             self.paint_hexrays(cfunc, self.director.coverage)
 
-        # stop tracking vdui's if they close...
         elif event == idaapi.hxe_close_pseudocode:
             vdui = args[0]
             self._vduis.pop(vdui.view_idx, None)

@@ -15,7 +15,7 @@ def lmsg(message):
     """
 
     # prefix the message
-    prefix_message = "[Lighthouse] %s" % message
+    prefix_message = f"[Lighthouse] {message}"
 
     # only print to disassembler if its output window is alive
     if disassembler.is_msg_inited():
@@ -27,11 +27,9 @@ def get_log_dir():
     """
     Return the Lighthouse log directory.
     """
-    log_directory = os.path.join(
-        disassembler.get_disassembler_user_directory(),
-        "lighthouse_logs"
+    return os.path.join(
+        disassembler.get_disassembler_user_directory(), "lighthouse_logs"
     )
-    return log_directory
 
 def logging_started():
     """
@@ -97,7 +95,7 @@ def cleanup_log_directory(log_directory):
         try:
             os.remove(filetimes[log_time])
         except Exception as e:
-            logger.error("Failed to delete log %s" % filetimes[log_time])
+            logger.error(f"Failed to delete log {filetimes[log_time]}")
             logger.error(e)
 
 def start_logging():
@@ -111,7 +109,7 @@ def start_logging():
     # present. we simply return a stub logger to sinkhole messages.
     #
 
-    if os.getenv("LIGHTHOUSE_LOGGING") == None:
+    if os.getenv("LIGHTHOUSE_LOGGING") is None:
         logger.disabled = True
         return logger
 
@@ -124,7 +122,7 @@ def start_logging():
         return logger
 
     # construct the full log path
-    log_path = os.path.join(log_dir, "lighthouse.%s.log" % os.getpid())
+    log_path = os.path.join(log_dir, f"lighthouse.{os.getpid()}.log")
 
     # config the logger
     logging.basicConfig(

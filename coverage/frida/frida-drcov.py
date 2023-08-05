@@ -208,8 +208,7 @@ def populate_bbs(data):
 
 # take the module dict and format it as a drcov logfile header
 def create_header(mods):
-    header = ''
-    header += 'DRCOV VERSION: 2\n'
+    header = '' + 'DRCOV VERSION: 2\n'
     header += 'DRCOV FLAVOR: frida\n'
     header += 'Module Table: version 2, count %d\n' % len(mods)
     header += 'Columns: id, base, end, entry, checksum, timestamp, path\n'
@@ -306,10 +305,7 @@ def main():
     if len(args.whitelist_modules):
             whitelist_modules = args.whitelist_modules
 
-    threadlist = ['all']
-    if len(args.thread_id):
-        threadlist = args.thread_id
-
+    threadlist = args.thread_id if len(args.thread_id) else ['all']
     json_whitelist_modules = json.dumps(whitelist_modules)
     json_threadlist = json.dumps(threadlist)
 

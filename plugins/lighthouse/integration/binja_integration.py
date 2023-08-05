@@ -139,11 +139,7 @@ class LighthouseBinja(LighthouseCore):
 
         dctx_id = ctypes.addressof(dctx.handle.contents)
         lctx = self.lighthouse_contexts.get(dctx_id, None)
-        if not lctx:
-            return False
-
-        # return True if there appears to be coverage loaded...
-        return bool(lctx.director.coverage_names)
+        return False if not lctx else bool(lctx.director.coverage_names)
 
     def _open_coverage_overview(self, context):
         dctx = disassembler.binja_get_bv_from_dock()

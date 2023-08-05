@@ -14,7 +14,7 @@ disassembler = None
 # IDA API Shim
 #--------------------------------------------------------------------------
 
-if disassembler == None:
+if disassembler is None:
     try:
         from .ida_api import IDACoreAPI, IDAContextAPI
         disassembler = IDACoreAPI()
@@ -26,7 +26,7 @@ if disassembler == None:
 # Binary Ninja API Shim
 #--------------------------------------------------------------------------
 
-if disassembler == None:
+if disassembler is None:
     try:
         from .binja_api import BinjaCoreAPI, BinjaContextAPI
         disassembler = BinjaCoreAPI()
@@ -38,6 +38,6 @@ if disassembler == None:
 # Unknown Disassembler
 #--------------------------------------------------------------------------
 
-if disassembler == None:
+if disassembler is None:
     raise NotImplementedError("Unknown or unsupported disassembler!")
 

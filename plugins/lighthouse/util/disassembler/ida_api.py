@@ -125,11 +125,7 @@ class IDACoreAPI(DisassemblerCoreAPI):
 
         # method two, fallback
         color = self._get_ida_bg_color_from_view()
-        if not color:
-            return None
-
-        # return the found background color
-        return color
+        return None if not color else color
 
     def is_msg_inited(self):
         return idaapi.is_msg_inited()
@@ -187,8 +183,7 @@ class IDACoreAPI(DisassemblerCoreAPI):
 
         # attempt to 'dock' the widget in a reasonable location
         for target in ["IDA View-A", "Pseudocode-A"]:
-            dwidget = idaapi.find_widget(target)
-            if dwidget:
+            if dwidget := idaapi.find_widget(target):
                 idaapi.set_dock_pos(dockable_name, 'IDA View-A', idaapi.DP_RIGHT)
                 break
 
@@ -238,30 +233,24 @@ class IDACoreAPI(DisassemblerCoreAPI):
         except OSError:
             pass
 
-        # attempt to parse the user's disassembly background color from the html (7.0?)
-        bg_color_text = get_string_between(html, '<body bgcolor="', '">')
-        if bg_color_text:
-            logger.debug(" - Extracted bgcolor '%s' from regex!" % bg_color_text)
+        if bg_color_text := get_string_between(html, '<body bgcolor="', '">'):
+            logger.debug(f" - Extracted bgcolor '{bg_color_text}' from regex!")
             return QtGui.QColor(bg_color_text)
 
-        #
-        # sometimes the above one isn't present... so try this one (7.1 - 7.4 maybe?)
-        #
-        # TODO: IDA 7.5 says c1 is /* line-fg-default */ ... but it's possible c1
-        # had the bg color of the line in other builds of 7.x? I'm not sure but
-        # this should be double checked at some point and can maybe just be removed
-        # in favor of c41 (line-bg-default) as that's what we really want
-        #
-
-        bg_color_text = get_string_between(html, '.c1 \{ background-color: ', ';')
-        if bg_color_text:
-            logger.debug(" - Extracted background-color '%s' from line-fg-default!" % bg_color_text)
+        if bg_color_text := get_string_between(
+            html, '.c1 \{ background-color: ', ';'
+        ):
+            logger.debug(
+                f" - Extracted background-color '{bg_color_text}' from line-fg-default!"
+            )
             return QtGui.QColor(bg_color_text)
 
-        # -- IDA 7.5 says c41 is /* line-bg-default */, a.k.a the bg color for disassembly text
-        bg_color_text = get_string_between(html, '.c41 \{ background-color: ', ';')
-        if bg_color_text:
-            logger.debug(" - Extracted background-color '%s' from line-bg-default!" % bg_color_text)
+        if bg_color_text := get_string_between(
+            html, '.c41 \{ background-color: ', ';'
+        ):
+            logger.debug(
+                f" - Extracted background-color '{bg_color_text}' from line-bg-default!"
+            )
             return QtGui.QColor(bg_color_text)
 
         logger.debug(" - HTML color regex failed...")
@@ -516,21 +505,14 @@ def map_line2node(cfunc, metadata, line2citem):
             except IndexError as e:
                 continue
 
-            # find the graph node (eg, basic block) that generated this citem
-            node = metadata.get_node(address)
+            if node := metadata.get_node(address):
+                #
+                # we made it this far, so we must have found a node that contains
+                # this citem. save the computed node_id to the list of known
+                # nodes we have associated with this line of text
+                #
 
-            # address not mapped to a node... weird. continue to the next citem
-            if not node:
-                #logger.warning("Failed to map node to basic block")
-                continue
-
-            #
-            # we made it this far, so we must have found a node that contains
-            # this citem. save the computed node_id to the list of known
-            # nodes we have associated with this line of text
-            #
-
-            nodes.add(node.address)
+                nodes.add(node.address)
 
         #
         # finally, save the completed list of node ids as identified for this
